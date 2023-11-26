@@ -3,9 +3,9 @@ The AI model which could feint for the others' move.
 
 THE FEINT PLAYER MODEL
 
-the pong simulation where bilateral players learn each other's learning process itself by the movement of the ball and the opponent; given each player can survey the trajections of the ball and the other player. each could have the incentive to conceal the learning processes and the differential traces to be surveyed by the other player, only in the movement in the pong game.
+The pong simulation where bilateral players learn each other's learning process itself by the movement of the ball and the opponent; given each player can survey the trajections of the ball and the other player. Each could have the incentive to conceal the learning processes and the differential traces to be surveyed by the other player, only in the movement in the pong game.
 
-the learning process of the each player should be strictly separated, only the view on the arena may be fully learnable for each; especially the differential velocity of the other player is highly remarkable, including the feint technique.
+The learning process of the each player should be strictly separated, only the view on the arena may be fully learnable for each; especially the differential velocity of the other player is highly remarkable, including the feint technique.
 
 THE SOFTGRAPH
 
