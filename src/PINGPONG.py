@@ -11,8 +11,10 @@ LIBRALIES
 
 import numpy as np
 import torch
-# import sklearn as sk
-# import torchquad
+import torchquad as quad
+import pygame as game
+
+# from sklearn
 
 # this program will be the outlet model of softgraph.py
 import softgraph
@@ -26,8 +28,6 @@ class Court:
     def __init__(self, if_solo, width, height, friction, fence_height, weight_cols, weight_ars):
         # time dimention
         self.t = 0.0
-        # previous time
-        self.previous = 0.0
 
         # the gravity
         self.g = 9.8
@@ -104,7 +104,7 @@ class Player(Court):
         # the attributes for the swinging
         # the opponent can only survey and learn the swinging by its result as the trajectory of the ball
         self.phi = 0 # the angular of the swing
-        self.power = 0.03 # the acceleraation of the swing
+        self.power = 0.003 # the acceleraation of the swing
         self.axis = [self.width/2, self.height/2] # the axis of the angular movement which is movable
         
         # the coupon to declare the time break
@@ -126,11 +126,7 @@ class Player(Court):
         Ball.f += torch.div(torch.tensor([self.power * torch.cos(self.phi),
                 self.power * torch.sin(self.phi), 0]), Ball.weight)
         print("hit!")
-        # debugger
-        # print("Ball.f", Ball.f, "stamina", self.stamina, "Ball.weight", Ball.weight,
-        #        "Player.weight", self.weight, "swing phi", self.phi,
-        #        "Player.power", self.power)
-    
+   
     # only for the serve swing
     def toss(self, Ball):
         self.stamina -= 0.1
@@ -158,7 +154,7 @@ class Player(Court):
     
     # output on the court play    
     def play(self, Ball, Mind):
-        if (self.service_turn == self.name) and (self.t == 0) and (self.xyz == Ball.xyz):
+        if (self.service_turn == self.name) and (self.t == 0) and torch.equal(self.xyz, Ball.xyz):
             # the serve
             self.toss(Ball)
             print("tossed")
@@ -201,39 +197,50 @@ class Ball(Court):
         self.diameter = 0.0
         self.bounce = 0.0
         self.f = torch.tensor([0.0,0.0,0.0])
+        self.collide = False
 
     def get_body(self, weight, diameter, bounce):
         self.weight = weight
         self.diameter = diameter
         self.boucne = bounce
 
+    '''
+    STUCK!!!
+
+    somehow the ball throughs the wall
+    '''
     def collide_wall(self, index):
         if index == 1:
+            print("!")
             self.f[0] *= -1
+            self.collide = True
         elif index == 2:
+            print("!")
             self.f[1] *= -1
+            self.collide = True
         elif index == 3:
-            self.f[1] *= -1
-        elif index == 4:
-            self.f[2] *= -1
+            print("!")
+            self.f[0] *= -1
+            self.collide = True
         else:
             pass
-    
+
+    def bound_ground(self):
+        self.f[2] *= -1
+
     def if_collide_fence(self, Court):
-        if (self.f[0] >= 0) and (self.xyz[0] > Court.width / 2.0) and (self.xyz[2] < Court.fence_height):
-            print("net miss!")
-            return 1
-        elif (self.f[0] < 0) and (self.xyz[0] < Court.width /2.0 ) and (self.xyz[2] < Court.fence_height):
-            print("net miss!")
-            return 1
-        else:
-            print("net pass")
-            return 0
+        return self.xyz[0] <= Court.height/2.0 <= self.xyz[0] +self.diameter and Court.fence_height >= self.xyz[1] + self.diameter
 
     def run(self, Court):
-        self.xyz = torch.tensor(self.xyz) + self.f
+        self.xyz = torch.add(self.xyz, self.f)
         self.f[2] +=  -0.01 * Court.g
         self.resistance()
+        
+        # collide flag management
+        if if_in(Court):
+            self.collide = False
+        else:
+            pass
 
     # the ball would reduce its acceleration by the resistance in the air
     def resistance(self):
@@ -282,35 +289,37 @@ INITIALIZE
 this space seems too ugly for now...
 '''
 
+# measured in MKS
+
 # embody the court
 # (if_solo, width, height, friction, fence_height, weight_cols, weight_ars)
-court = Court(True, 40.0, 20.0, 0.2, 0.3, 4, 4)
+court = Court(True, 8.23, 23.77, 0.1, 0.914, 4, 4)
 
 # embody the ball
-ball = Ball(True, 40.0, 25.0, 0.2, 0.7, 4, 4)
+ball = Ball(True, 8.23, 23.77, 0.1, 0.914 , 4, 4)
 # (weight, diameter, bounce)
-ball.get_body(0.5, 0.2, 0.5)
+ball.get_body(0.0567, 0.0654, 0.85)
 court.ball = ball
 
 # embody the player
 # the only player who doesn't have theory of mind
-court.alice = Player(True, 40.0, 25.0, 0.2, 0.7, 4, 4)
+court.alice = Player(True, 8.23, 23.77, 0.1, 0.914 , 4, 4)
 court.alice.name = "alice"
 # (weight, width, height, stamina)
-court.alice.get_body(50.0,1.0,1.0, 100.0)
-court.alice.stamina = 100
+court.alice.get_body(54.7, 1.61, 1.61, 100.0)
 
 # set Mind class on alice
 alice_mind = Mind(court.alice)
 
 # initialize the postion of the players and the ball
 # maybe this could be in the constructor 
-court.alice.xyz = [0, court.height/2, 0]
+court.alice.xyz = torch.tensor([0, court.width/2.0, 0])
 if court.service_turn == court.alice.name:
     court.ball.xyz = court.alice.xyz
     court.ball.xyz[2] += court.alice.height
 else:
     print("something is wrong")
+
 
 '''
 GAME PARAMETERS
@@ -333,36 +342,37 @@ for the main loop
 '''
 
 def game(court):
-    # debugger
-    print(court.previous)
-
+    # alice to play the game
     court.alice.play(court.ball, alice_mind)
 
     # time procedure
     court.t += 0.01
 
     # the ball movement
-    # the function of court.t
     court.ball.run(court)
 
-    # collision judgement
-    court.ball.collide_wall(if_collide(court))
-
-    # debugger 
-    # print("court time\n", court.t)
-    # print("ball.f\n", court.ball.f)
-    print("ball.xyz\n",court.ball.xyz)
-    print("ball.xyz\n",court.ball.xyz)
-
-    if (court.previous < court.width/2.0) and (court.width/2.0 < court.ball.xyz[0]): 
-        if(court.ball.if_collide_fence(court)):
-            return 1
-        else:
-            return 0
+    # landing judgement
+    if if_land(court):
+        court.ball.bound_ground()
     else:
         pass
 
-    court.previous = court.ball.xyz[0]
+    # collision judgement
+    if not if_in(court) and court.ball.collide == False:
+        court.ball.collide_wall(if_collide(court))
+    elif not if_in(court) and court.ball.collide == True:
+        pass
+    else:
+        court.ball.collide = False
+        court.ball.collide_wall(if_collide(court))
+
+    # to the fence
+    if court.ball.if_collide_fence(court):
+        return 1
+    else:
+        pass
+    
+    print("ball.xyz\n",court.ball.xyz)
 def match(match_point, court):
     game(court)
 
@@ -385,26 +395,33 @@ def if_collide(court):
         elif court.ball.xyz[1] > court.height:
             print("collide!")
             return 2
-        elif court.ball.xyz[1] < 0.0:
+        elif court.ball.xyz[0] < 0.0:
             print("collide!")
             return 3
-        elif court.ball.xyz[2] < 0.0:
-            return 4
+        elif court.ball.xyz[1] < 0.0:
+            print("ball pass! game over!")
+            return 5
         else:
             return 0
     else:
         pass
 
+# judging the in-out of the ball
+def if_in(court):
+    return 0 <= court.ball.xyz[0] <= court.width and 0 <= court.ball.xyz[1] <= court.height
 
+# judgin the landing of the ball
+def if_land(court):
+    return 0.0 >= court.ball.xyz[2]
 '''
 MAIN LOOP
 '''
 
 def main(interbal, match_point, setmatch):
-    print(court.alice.xyz)
-    while True:
+    for i in range(120):
         x = game(court)
         if x == 1:
+            print("game over!")
             break
         else:
             continue
