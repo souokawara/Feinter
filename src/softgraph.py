@@ -53,7 +53,5 @@ class Edge:
         self.v2 = v2
         
 graph = RandomGraph(5,3)
-print(len(graph.c))
         
 
-print(torch.cuda.is_available())
