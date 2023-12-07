@@ -1,13 +1,14 @@
 '''
-GAME ENGINE
+Physics Library
 '''
+
+import graphics
 import torch
 import scipy as sp
 import torchquad as quad
-import pygame as game
 from sympy import *
 from sympy import I,pi,E
-import Assets as assets
+
 '''
 PHYSICS
 
@@ -22,9 +23,9 @@ class Physics:
     def __init__(self):
         self.t = torch.tensor([0.0]) # time
         self.fps = torch.tensor([]) # fps for the Graphic class
-        self.dt = torch.tensor(self.t/self.fps) # the effective differential physical time in the game
+        self.dt = self.t/self.fps # the effective differential physical time in the game
         self.g = torch.tensor([9.8]) # gravity constant
-        self.r = torch.tensor([0.2]) # the air resistance
+        self.ad = torch.tensor([0.2]) # the density of the air
         self.assets_id = torch.tensor([]) # assets handler
 
     def register(self, name):
@@ -88,48 +89,10 @@ test.register("ball")
 print(test.id)
 
 '''
-GRAPHICS
-'''
-# define some colors
-BLACK    = (   0,   0,   0)
-WHITE    = ( 255, 255, 255)
-GREEN    = (   0, 255,   0)
-RED      = ( 255,   0,   0)
-BLUE     = (   0,   0, 255)
-
-class Graphics:
-    def __init__(self):
-        # the window settings
-        self.size = (650, 1000)
-        self.caption = "Beta Graphic"
-        self.screen = game.display.set_mode(size)
-        self.game.display.set_caption(caption)
-        self.display = game.display
-
-        # the fps
-        self.fps = game.time.Clock()
-        self.fps = 60
-
-        # close flag
-        self.close = False
-
-    def update(self):
-        self.display.flip()
-        return 0
-        
-'''
-PHYSICS INTERFACE TO ASSETS
-'''
-
-
-'''
 MAIN LOOP
 '''
 def main():
-    game.init()
-    print("test")
-    game.quit()
-    return 0
+   return 0
 
 if __name__ == '__main__':
     main()
